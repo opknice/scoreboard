@@ -595,9 +595,6 @@ document.addEventListener('DOMContentLoaded', () => {
     resetToZero(); 
     updateInjuryTimeDisplay();
     obs.connect('ws://localhost:4455').catch(err => showToast(translations[currentLang].toastObsError, 'error'));
-    
-    fetchAnnouncement();
-    setInterval(fetchAnnouncement, 3600000);
 });
 
 // --- TEAM COLOR MEMORY ---
