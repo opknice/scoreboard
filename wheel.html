@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>วงล้อจับคู่ V1.6</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --wheel-size: 380px;
+            --primary-color: #3498db;
+            --danger-color: #e74c3c;
+            --success-color: #27ae60;
+            --dark-color: #34495e;
+            --light-color: #ecf0f1;
+        }
+        body {
+            font-family: 'Sarabun', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f2f5;
+            transition: background-color 0.3s;
+        }
+        .main-display-area {
+            position: relative;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+        }
+        .app-container {
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            gap: 30px;
+            flex-wrap: wrap;
+            width: 100%;
+        }
+        .wheels-area {
+            display: flex;
+            gap: 30px;
+            justify-content: center;
+            align-items: flex-start;
+            flex-wrap: wrap;
+        }
+        .controls-area {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            width: 350px;
+            max-width: 100%;
+        }
+        .spin-button-container {
+            width: 100%;
+            text-align: center;
+            margin-top: 20px;
+            margin-bottom: 20px;
+        }
+        .wheel-container {
+            position: relative;
+            width: var(--wheel-size);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .wheel-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--dark-color);
+            margin-bottom: 10px;
+            min-height: 30px;
+        }
+        .wheel-canvas {
+            width: var(--wheel-size);
+            height: var(--wheel-size);
+            border-radius: 50%;
+        }
+        .pointer {
+            position: absolute;
+            top: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0; height: 0;
+            border-left: 18px solid transparent;
+            border-right: 18px solid transparent;
+            border-top: 30px solid var(--danger-color);
+            z-index: 10;
+            filter: drop-shadow(0 4px 5px rgba(0,0,0,0.35));
+        }
+        #spin-button {
+            font-size: 22px; font-weight: 700; padding: 15px 40px;
+            border-radius: 8px; border: none; background-color: var(--danger-color);
+            color: white; cursor: pointer; transition: background-color 0.3s, transform 0.1s;
+        }
+        #spin-button:hover { background-color: #c0392b; }
+        #spin-button:active { transform: scale(0.97); }
+        #spin-button.disabled { background-color: #95a5a6; cursor: not-allowed; }
+        
+        .card {
+            background-color: #fff; padding: 20px; border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .card-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 15px; border-bottom: 2px solid var(--light-color); padding-bottom: 10px;
+        }
+        .card-header h2 { margin: 0; color: var(--dark-color); font-size: 22px; }
+        
+        .input-group { flex: 1; }
+        .input-group label { font-weight: 700; font-size: 14px; color: #555; display: block; margin-bottom: 5px; }
+        .title-input, .palette-select, #separator-width {
+            width: 100%; box-sizing: border-box; padding: 8px;
+            border: 1px solid #ccc; border-radius: 4px; font-size: 16px;
+        }
+        
+        textarea {
+            width: 100%; box-sizing: border-box; height: 160px;
+            padding: 10px; border: 1px solid #ccc; border-radius: 4px;
+            font-size: 16px; font-family: 'Sarabun', sans-serif; resize: vertical;
+        }
+        .update-button {
+            width: 100%; padding: 10px; margin-top: 10px;
+            background-color: var(--primary-color); color: white; border: none;
+            border-radius: 4px; font-size: 16px; cursor: pointer;
+        }
+
+        #history-list {
+            list-style-type: none; padding: 0; margin: 0;
+            height: 250px; resize: vertical; overflow: auto;
+            border: 1px solid #ddd; border-radius: 4px; padding: 5px; position: relative;
+        }
+        .history-item {
+            display: flex; align-items: stretch; margin-bottom: 6px;
+            font-size: 16px; overflow: hidden; border-radius: 5px;
+        }
+        .history-prefix {
+            flex-shrink: 0; padding: 8px 12px; font-weight: 700;
+            color: white; background-color: var(--dark-color);
+            min-width: 50px; text-align: center;
+        }
+        .history-name {
+            padding: 8px 12px; background-color: var(--light-color);
+            color: #333; white-space: nowrap; overflow: hidden;
+            text-overflow: ellipsis; flex-grow: 1;
+        }
+        .history-controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+        .history-controls select { padding: 5px; border-radius: 4px; border: 1px solid #ccc; }
+        .copy-btn, .fullscreen-btn {
+            font-size: 12px; padding: 6px 10px;
+            color: white; border: none; border-radius: 4px; cursor: pointer;
+        }
+        .copy-btn { background-color: var(--success-color); margin-left: auto; }
+        .fullscreen-btn { background-color: #8e44ad; }
+        #history-list.empty { text-align: center; color: #999; padding: 20px 0; border: none;}
+
+        #history-list.fullscreen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 200; background-color: white; padding: 20px;
+            box-sizing: border-box; border-radius: 0; height: 100vh;
+        }
+        .close-fullscreen-btn {
+            display: none; position: absolute; top: 15px; right: 20px;
+            font-size: 24px; font-weight: bold; color: var(--danger-color);
+            background: none; border: none; cursor: pointer;
+        }
+        #history-list.fullscreen .close-fullscreen-btn { display: block; }
+        
+        .setting-row { display: flex; gap: 15px; margin-bottom: 15px; align-items: flex-end;}
+        .setting-divider {
+             margin-top: 15px; margin-bottom: 15px;
+            border-top: 1px solid var(--light-color);
+        }
+        .checkbox-group, .separator-controls, .copy-settings { display: flex; align-items: center; gap: 8px; }
+        .checkbox-group label, .separator-controls label { margin-bottom: 0; }
+        #spin-duration-slider { width: 100%; }
+        #separator-width { width: 60px; }
+        .bg-settings { display: flex; align-items: center; gap: 10px; }
+        .bg-settings label { font-size: 14px; margin-bottom: 0;}
+        .greenscreen-btn { padding: 4px 8px; font-size: 12px; background-color: #00a86b; color: white; border:none; border-radius: 4px;}
+        
+        .modal-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: transparent; 
+            display: flex; justify-content: center; align-items: center;
+            z-index: 100; opacity: 0; visibility: hidden;
+            transition: opacity 0.3s, visibility 0.3s;
+            pointer-events: none;
+        }
+        .modal-overlay.show { opacity: 1; visibility: visible; }
+        .modal-content {
+            background: #ffffff; padding: 40px; border-radius: 12px;
+            text-align: center; transform: scale(0.9);
+            transition: transform 0.3s; box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            pointer-events: auto;
+        }
+        .modal-overlay.show .modal-content { transform: scale(1); }
+        .modal-content p { font-size: 20px; color: #333; margin: 0; font-weight: 500;}
+        .winner-display {
+            font-size: 52px; font-weight: 700; margin: 10px 0 30px 0;
+            max-width: 60vw; word-wrap: break-word; text-shadow: 0px 2px 4px rgba(0,0,0,0.1);
+        }
+        .winner-part1 { color: var(--dark-color); }
+        .winner-part2 { color: var(--primary-color); margin-left: 15px; }
+        .modal-buttons { display: flex; gap: 15px; justify-content: center; flex-wrap: wrap; }
+        .modal-btn { padding: 10px 20px; border: none; border-radius: 5px; font-size: 16px; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .close-btn { background-color: #7f8c8d; color: white; }
+        .remove-btn { background-color: var(--danger-color); color: white; }
+        .copy-winner-btn { background-color: var(--success-color); color: white; }
+        
+        footer { 
+            margin-top: 30px; color: #777; font-size: 14px;
+            display: flex; flex-direction: column; align-items: center; gap: 5px;
+        }
+        
+        @media (max-width: 820px) {
+            .wheels-area, .app-container { flex-direction: column; align-items: center; }
+            .setting-row { flex-direction: column; align-items: stretch; gap: 15px;}
+        }
+    </style>
+</head>
+<body>
+    <div class="main-display-area">
+        <div class="wheels-area">
+            <div class="wheel-container">
+                <div class="wheel-title" id="wheel-title-1"></div>
+                <div class="pointer"></div>
+                <canvas class="wheel-canvas" id="wheel-canvas-1" width="500" height="500"></canvas>
+            </div>
+            <div class="wheel-container">
+                <div class="wheel-title" id="wheel-title-2"></div>
+                <div class="pointer"></div>
+                <canvas class="wheel-canvas" id="wheel-canvas-2" width="500" height="500"></canvas>
+            </div>
+        </div>
+        <div class="modal-overlay" id="modal">
+            <div class="modal-content">
+                <p>ผลการจับคู่คือ</p>
+                <div class="winner-display">
+                    <span id="winner-part1" class="winner-part1"></span>
+                    <span id="winner-part2" class="winner-part2"></span>
+                </div>
+                <div class="modal-buttons">
+                    <button class="modal-btn copy-winner-btn" id="copy-winner-btn">คัดลอกชื่อ</button>
+                    <button class="modal-btn remove-btn" id="remove-btn">ลบคู่นี้ออก</button>
+                    <button class="modal-btn close-btn" id="close-btn">ปิด</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="spin-button-container">
+        <button id="spin-button">สุ่มจับคู่</button>
+    </div>
+
+    <div class="app-container">
+        <div class="controls-area">
+            <div class="card">
+                <h2>รายชื่อวงล้อ 1</h2>
+                <textarea id="name-list-1"></textarea>
+                <button class="update-button" id="update-button-1">อัปเดต</button>
+            </div>
+            <div class="card">
+                <h2>รายชื่อวงล้อ 2</h2>
+                <textarea id="name-list-2"></textarea>
+                <button class="update-button" id="update-button-2">อัปเดต</button>
+            </div>
+        </div>
+
+        <div class="controls-area">
+            <div class="card">
+                <div class="card-header">
+                    <h2>ประวัติ</h2>
+                    <div class="history-controls">
+                        <select id="sort-history">
+                            <option value="newest">ใหม่ > เก่า</option>
+                            <option value="oldest">เก่า > ใหม่</option>
+                            <option value="az">A > Z</option>
+                        </select>
+                        <button class="fullscreen-btn" id="history-fullscreen-btn">เต็มจอ</button>
+                        <button class="copy-btn" id="copy-history-btn">คัดลอก</button>
+                    </div>
+                </div>
+                <ul id="history-list" class="empty">
+                    <button class="close-fullscreen-btn">&times;</button>
+                    ประวัติจะแสดงที่นี่
+                </ul>
+            </div>
+            <div class="card">
+                 <h2>ตั้งค่า</h2>
+                 <div class="setting-row">
+                    <div class="input-group"><label for="title-input-1">หัวข้อ 1</label><input type="text" id="title-input-1" class="title-input"></div>
+                    <div class="input-group"><label for="title-input-2">หัวข้อ 2</label><input type="text" id="title-input-2" class="title-input"></div>
+                 </div>
+                 <div class="setting-row">
+                    <div class="input-group"><label for="palette-select-1">สไตล์สี 1</label><select id="palette-select-1" class="palette-select"></select></div>
+                    <div class="input-group"><label for="palette-select-2">สไตล์สี 2</label><select id="palette-select-2" class="palette-select"></select></div>
+                 </div>
+                 <div class="setting-row">
+                     <div class="input-group" style="flex: 3;"><label for="spin-duration-slider">เวลาหมุน: <span id="duration-value">6</span>s</label><input type="range" id="spin-duration-slider" min="2" max="15" value="6" step="1"></div>
+                     <div class="input-group" style="flex: 2;">
+                        <label>เส้นคั่น</label>
+                        <div class="separator-controls">
+                             <input type="checkbox" id="separator-toggle" checked>
+                             <input type="number" id="separator-width" min="1" max="10" value="1">
+                             <span>px</span>
+                        </div>
+                    </div>
+                 </div>
+                 <div class="setting-divider"></div>
+                 <div class="copy-settings">
+                    <label>ตั้งค่าคัดลอก:</label>
+                    <div class="checkbox-group"><input type="checkbox" id="copy-winner-wheel1"><label for="copy-winner-wheel1">วงล้อ 1</label></div>
+                    <div class="checkbox-group"><input type="checkbox" id="copy-winner-wheel2" checked><label for="copy-winner-wheel2">วงล้อ 2</label></div>
+                 </div>
+                 <div class="setting-divider"></div>
+                 <div class="bg-settings">
+                    <label for="bg-color-picker">สีพื้นหลัง:</label>
+                    <input type="color" id="bg-color-picker" value="#f0f2f5">
+                    <button class="greenscreen-btn" id="greenscreen-btn">Green Screen</button>
+                 </div>
+            </div>
+        </div>
+    </div>
+    
+    <footer>
+        <a href='http://www.freevisitorcounters.com'>at Freevisitorcounters.com</a> <script type='text/javascript' src='https://www.freevisitorcounters.com/auth.php?id=9bd1a27b3644b0c95ac81695b840ffd25bf8449d'></script>
+        <script type="text/javascript" src="https://www.freevisitorcounters.com/en/home/counter/1361137/t/5"></script>
+        <p id="version-info">Random Wheel x2 - เวอร์ชัน 1.6</p>
+    </footer>
+
+    <script>
+        // DOM Elements
+        const canvas1 = document.getElementById('wheel-canvas-1'), ctx1 = canvas1.getContext('2d');
+        const canvas2 = document.getElementById('wheel-canvas-2'), ctx2 = canvas2.getContext('2d');
+        const spinButton = document.getElementById('spin-button');
+        const nameList1 = document.getElementById('name-list-1'), nameList2 = document.getElementById('name-list-2');
+        const updateBtn1 = document.getElementById('update-button-1'), updateBtn2 = document.getElementById('update-button-2');
+        const titleInput1 = document.getElementById('title-input-1'), titleInput2 = document.getElementById('title-input-2');
+        const wheelTitle1 = document.getElementById('wheel-title-1'), wheelTitle2 = document.getElementById('wheel-title-2');
+        const paletteSelect1 = document.getElementById('palette-select-1'), paletteSelect2 = document.getElementById('palette-select-2');
+        const spinDurationSlider = document.getElementById('spin-duration-slider');
+        const durationValueSpan = document.getElementById('duration-value');
+        const separatorToggle = document.getElementById('separator-toggle');
+        const separatorWidthInput = document.getElementById('separator-width');
+        const copyWinnerWheel1 = document.getElementById('copy-winner-wheel1');
+        const copyWinnerWheel2 = document.getElementById('copy-winner-wheel2');
+        const historyList = document.getElementById('history-list');
+        const historyFullscreenBtn = document.getElementById('history-fullscreen-btn');
+        const sortHistorySelect = document.getElementById('sort-history');
+        const copyHistoryBtn = document.getElementById('copy-history-btn');
+        const bgColorPicker = document.getElementById('bg-color-picker');
+        const greenscreenBtn = document.getElementById('greenscreen-btn');
+        const modal = document.getElementById('modal'), winnerPart1El = document.getElementById('winner-part1'), winnerPart2El = document.getElementById('winner-part2');
+        const closeBtn = document.getElementById('close-btn'), removeBtn = document.getElementById('remove-btn');
+        const copyWinnerBtn = document.getElementById('copy-winner-btn');
+
+        // State & Config
+        let names1 = [], names2 = [];
+        let nameColorMap1 = new Map(), nameColorMap2 = new Map();
+        let rotation1 = 0, rotation2 = 0;
+        let history = [];
+        let spinFinishedCount = 0;
+        let winners = { val1: null, val2: null };
+        const palettes = {
+            classic: ['#e74c3c', '#3498db', '#f1c40f', '#2ecc71', '#9b59b6', '#e67e22', '#1abc9c', '#34495e'],
+            pastel: ['#ffadad', '#ffd6a5', '#fdffb6', '#caffbf', '#9bf6ff', '#a0c4ff', '#bdb2ff', '#ffc6ff'],
+            neon: ['#f83bff', '#39ff14', '#feff00', '#ff0054', '#00e5ff', '#ff6600', '#8a2be2', '#20f1dd'],
+            corporate: ['#34495e', '#7f8c8d', '#2c3e50', '#95a5a6', '#bdc3c7', '#596275', '#303952', '#1e272e'],
+            monochrome: ['#212121', '#424242', '#616161', '#757575', '#9E9E9E', '#BDBDBD', '#E0E0E0'],
+        };
+        
+        // Functions
+        const applySpinDuration = (duration) => {
+            const transitionStyle = `transform ${duration}s cubic-bezier(0.25, 1, 0.5, 1)`;
+            canvas1.style.transition = transitionStyle;
+            canvas2.style.transition = transitionStyle;
+        };
+
+        const populatePalettes = () => {
+            Object.keys(palettes).forEach(name => {
+                const displayName = name.charAt(0).toUpperCase() + name.slice(1);
+                paletteSelect1.add(new Option(displayName, name));
+                paletteSelect2.add(new Option(displayName, name));
+            });
+        };
+
+        const drawWheel = (ctx, canvas, names, colors) => {
+            const centerX = canvas.width / 2, centerY = canvas.height / 2;
+            const radius = centerX - 8;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            if (names.length === 0) {
+                ctx.beginPath(); ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI); ctx.fillStyle = '#ddd'; ctx.fill();
+                ctx.strokeStyle = '#34495e'; ctx.lineWidth = 8; ctx.stroke();
+                return;
+            }
+            const segmentAngle = (2 * Math.PI) / names.length;
+            names.forEach((name, i) => {
+                const startAngle = i * segmentAngle - (Math.PI / 2);
+                const endAngle = (i + 1) * segmentAngle - (Math.PI / 2);
+                const color = colors[i];
+                ctx.beginPath(); ctx.moveTo(centerX, centerY); ctx.arc(centerX, centerY, radius, startAngle, endAngle);
+                ctx.closePath();
+                ctx.fillStyle = color;
+                ctx.fill();
+                
+                if (separatorToggle.checked) {
+                    ctx.strokeStyle = '#FFFFFF';
+                    ctx.lineWidth = parseInt(separatorWidthInput.value, 10) || 1;
+                    ctx.stroke();
+                }
+
+                ctx.save(); ctx.translate(centerX, centerY); ctx.rotate((startAngle + endAngle) / 2);
+                ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#fff'; ctx.shadowColor = 'rgba(0,0,0,0.2)'; ctx.shadowBlur = 2;
+                let fontSize = 20; ctx.font = `bold ${fontSize}px Sarabun`;
+                while (ctx.measureText(name).width > radius * 0.75 && fontSize > 10) {
+                    fontSize--; ctx.font = `bold ${fontSize}px Sarabun`;
+                }
+                ctx.fillText(name, radius - 20, 0);
+                ctx.restore();
+            });
+            ctx.beginPath(); ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI); ctx.strokeStyle = '#34495e'; ctx.lineWidth = 8; ctx.stroke();
+        };
+
+        const updateAndDraw = (wheelNum, forceResetColors = false) => {
+            const isWheel1 = wheelNum === 1;
+            const nameList = isWheel1 ? nameList1 : nameList2;
+            let nameColorMap = isWheel1 ? nameColorMap1 : nameColorMap2;
+            const currentNames = nameList.value.split('\n').map(n => n.trim()).filter(Boolean);
+            
+            if(forceResetColors) nameColorMap.clear();
+
+            const newColorMap = new Map();
+            const colorPalette = palettes[isWheel1 ? paletteSelect1.value : paletteSelect2.value];
+            let colorIndex = 0;
+
+            currentNames.forEach(name => {
+                if (nameColorMap.has(name) && !forceResetColors) {
+                    newColorMap.set(name, nameColorMap.get(name));
+                } else {
+                    newColorMap.set(name, colorPalette[colorIndex % colorPalette.length]);
+                    colorIndex++;
+                }
+            });
+            
+            if (isWheel1) {
+                nameColorMap1 = newColorMap;
+                names1 = currentNames;
+                wheelTitle1.textContent = titleInput1.value;
+                const orderedColors = names1.map(name => nameColorMap1.get(name));
+                drawWheel(ctx1, canvas1, names1, orderedColors);
+            } else {
+                nameColorMap2 = newColorMap;
+                names2 = currentNames;
+                wheelTitle2.textContent = titleInput2.value;
+                const orderedColors = names2.map(name => nameColorMap2.get(name));
+                drawWheel(ctx2, canvas2, names2, orderedColors);
+            }
+        };
+
+        const spinAllWheels = () => {
+            if (names1.length === 0 || names2.length === 0) { alert('กรุณาใส่รายชื่อให้ครบทั้ง 2 วงล้อ'); return; }
+            spinButton.classList.add('disabled');
+            spinFinishedCount = 0;
+            rotation1 += (8 * 360) + Math.floor(Math.random() * 360);
+            rotation2 += (8 * 360) + Math.floor(Math.random() * 360);
+            canvas1.style.transform = `rotate(${rotation1}deg)`;
+            canvas2.style.transform = `rotate(${rotation2}deg)`;
+        };
+
+        const handleSpinEnd = () => {
+            spinFinishedCount++;
+            if (spinFinishedCount === 2) {
+                spinButton.classList.remove('disabled');
+                const winnerIndex1 = Math.floor(((360 - (rotation1 % 360)) % 360) / (360 / names1.length));
+                const winnerIndex2 = Math.floor(((360 - (rotation2 % 360)) % 360) / (360 / names2.length));
+                winners = { val1: names1[winnerIndex1], val2: names2[winnerIndex2] };
+                if (winners.val1 && winners.val2) {
+                    history.push({ ...winners, timestamp: Date.now() });
+                    renderHistory();
+                    showWinnerModal(winners);
+                }
+            }
+        };
+
+        const renderHistory = () => {
+            const historyContent = document.createDocumentFragment();
+            if (history.length === 0) {
+                historyList.innerHTML = '<button class="close-fullscreen-btn">&times;</button>ประวัติจะแสดงที่นี่';
+                historyList.classList.add('empty');
+                return;
+            }
+            historyList.classList.remove('empty');
+            
+            const sortedHistory = [...history];
+            const sortMethod = sortHistorySelect.value;
+            if (sortMethod === 'oldest') sortedHistory.sort((a, b) => a.timestamp - b.timestamp);
+            else if (sortMethod === 'az') sortedHistory.sort((a, b) => a.val1.localeCompare(b.val1, 'th') || a.val2.localeCompare(b.val2, 'th'));
+            else sortedHistory.sort((a, b) => b.timestamp - a.timestamp);
+            
+            sortedHistory.forEach(item => {
+                const li = document.createElement('li'); li.className = 'history-item';
+                li.innerHTML = `<span class="history-prefix">${item.val1}</span><span class="history-name">${item.val2}</span>`;
+                historyContent.appendChild(li);
+            });
+            historyList.innerHTML = '';
+            const closeBtn = document.createElement('button');
+            closeBtn.className = 'close-fullscreen-btn';
+            closeBtn.innerHTML = '&times;';
+            historyList.appendChild(closeBtn);
+            historyList.appendChild(historyContent);
+        };
+
+        const removeLastResult = () => {
+            nameList1.value = nameList1.value.split('\n').filter(n => n.trim() !== winners.val1.trim()).join('\n');
+            nameList2.value = nameList2.value.split('\n').filter(n => n.trim() !== winners.val2.trim()).join('\n');
+            updateAndDraw(1);
+            updateAndDraw(2);
+            modal.classList.remove('show');
+        };
+
+        const copyWinner = () => {
+            const partsToCopy = [];
+            if (copyWinnerWheel1.checked) partsToCopy.push(winners.val1);
+            if (copyWinnerWheel2.checked) partsToCopy.push(winners.val2);
+
+            if(partsToCopy.length === 0) {
+                copyWinnerBtn.textContent = 'ไม่ได้เลือกค่า';
+                setTimeout(() => { copyWinnerBtn.textContent = 'คัดลอกชื่อ'; }, 1500);
+                return;
+            }
+
+            const textToCopy = partsToCopy.join(' ');
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                 copyWinnerBtn.textContent = 'คัดลอกแล้ว!';
+                 setTimeout(() => { copyWinnerBtn.textContent = 'คัดลอกชื่อ'; }, 1500);
+            });
+        };
+
+        const copyHistory = () => {
+             const items = Array.from(historyList.querySelectorAll('.history-item'));
+             if (items.length === 0) { alert("ไม่มีประวัติให้คัดลอก"); return; }
+             const textToCopy = items.map(item => {
+                 return `${item.querySelector('.history-prefix').textContent}\t${item.querySelector('.history-name').textContent}`;
+             }).join('\n');
+             navigator.clipboard.writeText(textToCopy).then(() => {
+                 copyHistoryBtn.textContent = 'คัดลอกแล้ว!';
+                 setTimeout(() => { copyHistoryBtn.textContent = 'คัดลอก'; }, 1500);
+             });
+        };
+        
+        const showWinnerModal = ({ val1, val2 }) => {
+            winnerPart1El.textContent = val1; winnerPart2El.textContent = val2; modal.classList.add('show');
+        };
+
+        // --- Event Listeners ---
+        updateBtn1.addEventListener('click', () => updateAndDraw(1));
+        updateBtn2.addEventListener('click', () => updateAndDraw(2));
+        titleInput1.addEventListener('input', () => wheelTitle1.textContent = titleInput1.value);
+        titleInput2.addEventListener('input', () => wheelTitle2.textContent = titleInput2.value);
+        paletteSelect1.addEventListener('change', () => updateAndDraw(1, true));
+        paletteSelect2.addEventListener('change', () => updateAndDraw(2, true));
+        spinButton.addEventListener('click', spinAllWheels);
+        canvas1.addEventListener('transitionend', handleSpinEnd);
+        canvas2.addEventListener('transitionend', handleSpinEnd);
+        sortHistorySelect.addEventListener('change', renderHistory);
+        copyHistoryBtn.addEventListener('click', copyHistory);
+        copyWinnerBtn.addEventListener('click', copyWinner);
+        closeBtn.addEventListener('click', () => modal.classList.remove('show'));
+        removeBtn.addEventListener('click', removeLastResult);
+        bgColorPicker.addEventListener('input', (e) => document.body.style.backgroundColor = e.target.value);
+        greenscreenBtn.addEventListener('click', () => {
+            document.body.style.backgroundColor = '#00ff00';
+            bgColorPicker.value = '#00ff00';
+        });
+        historyFullscreenBtn.addEventListener('click', () => historyList.classList.add('fullscreen'));
+        historyList.addEventListener('click', (e) => {
+            if (e.target.classList.contains('close-fullscreen-btn')) {
+                historyList.classList.remove('fullscreen');
+            }
+        });
+        spinDurationSlider.addEventListener('input', (e) => {
+            const duration = e.target.value;
+            durationValueSpan.textContent = duration;
+            applySpinDuration(duration);
+        });
+        const redrawBothWheels = () => { updateAndDraw(1); updateAndDraw(2); };
+        separatorToggle.addEventListener('change', redrawBothWheels);
+        separatorWidthInput.addEventListener('input', redrawBothWheels);
+
+        // --- Initial Load ---
+        const initialSetup = () => {
+            populatePalettes();
+            paletteSelect1.value = 'classic';
+            paletteSelect2.value = 'classic';
+            
+            titleInput1.value = 'กลุ่ม';
+            titleInput2.value = 'ทีม';
+            
+            nameList1.value = "A1\nA2\nA3\nB1\nB2\nB3\nC1\nC2\nC3";
+            nameList2.value = "สก.ทรัพย์เจริญ X ช่างโจ๋แอร์คูล B\nมาดามเก๋\nMP SOCCER\nห้างทองแม่อุรัย\nจอมยุทธ ยูไนเต็ด X บ้านแตก ยูไนเต็ด\nสุรินทร์การค้า\nสวย 24 X หน้าดำ FC\nYAI FC B\nKNP TTS.";
+            
+            applySpinDuration(spinDurationSlider.value);
+            updateAndDraw(1);
+            updateAndDraw(2);
+        };
+
+        initialSetup();
+    </script>
+</body>
+</html>
