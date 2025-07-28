@@ -456,6 +456,37 @@ const setupEventListeners = () => {
     elements.languageSelector.addEventListener('change', (e) => setLanguage(e.target.value));
     elements.excelBtn.addEventListener('click', handleExcel);
     elements.loadBtn.addEventListener('click', applyMatch);
+    // Previous/Next Match Buttons
+    if (!elements.prevMatchBtn) {
+        const prevBtn = document.createElement('button');
+        prevBtn.textContent = translations[currentLang]?.prev || 'ก่อนหน้า';
+        prevBtn.type = 'button';
+        prevBtn.id = 'prev-match-btn';
+        elements.matchID.parentNode.appendChild(prevBtn);
+        elements.prevMatchBtn = prevBtn;
+    }
+    if (!elements.nextMatchBtn) {
+        const nextBtn = document.createElement('button');
+        nextBtn.textContent = translations[currentLang]?.next || 'ต่อไป';
+        nextBtn.type = 'button';
+        nextBtn.id = 'next-match-btn';
+        elements.matchID.parentNode.appendChild(nextBtn);
+        elements.nextMatchBtn = nextBtn;
+    }
+
+    elements.prevMatchBtn.addEventListener('click', () => {
+        let id = parseInt(elements.matchID.value, 10) || 0;
+        if (id > 1) {
+            elements.matchID.value = id - 1;
+            applyMatch();
+        }
+    });
+    elements.nextMatchBtn.addEventListener('click', () => {
+        let id = parseInt(elements.matchID.value, 10) || 0;
+        elements.matchID.value = id + 1;
+        applyMatch();
+    });
+    
     elements.swapBtn.addEventListener('click', swapTeams);
     elements.scoreAPlusBtn.addEventListener('click', () => changeScore('A', 1));
     elements.scoreAMinusBtn.addEventListener('click', () => changeScore('A', -1));
@@ -612,15 +643,15 @@ function setTeamColors(teamName, colors) {
 }
 
 
-                        document.querySelectorAll('.quick-color_B').forEach(el => {
-                            el.addEventListener('click', function() {
-                                document.getElementById('colorB').value = this.dataset.color;
-                                document.getElementById('colorB').dispatchEvent(new Event('input', { bubbles: true }));
-                            });
-                        });
-                        document.querySelectorAll('.quick-color_A').forEach(el => {
-                            el.addEventListener('click', function() {
-                                document.getElementById('colorA').value = this.dataset.color;
-                                document.getElementById('colorA').dispatchEvent(new Event('input', { bubbles: true }));
-                            });
-                        });
+document.querySelectorAll('.quick-color_B').forEach(el => {
+    el.addEventListener('click', function() {
+        document.getElementById('colorB').value = this.dataset.color;
+        document.getElementById('colorB').dispatchEvent(new Event('input', { bubbles: true }));
+    });
+});
+ document.querySelectorAll('.quick-color_A').forEach(el => {
+    el.addEventListener('click', function() {
+        document.getElementById('colorA').value = this.dataset.color;
+        document.getElementById('colorA').dispatchEvent(new Event('input', { bubbles: true }));
+    });
+});
