@@ -179,8 +179,6 @@ const updateTeamUI = (team, name, logoFile, color1, color2) => {
     setImage(obsLogoSource, logoFile);
     setSourceColor(obsColorSource1, useColor1);
     setSourceColor(obsColorSource2, useColor2);
-    resetToZero(); 
-    resetScore();
 };
 
 const applyMatch = () => {
@@ -218,6 +216,8 @@ const applyMatch = () => {
     setText('label_3', get('label3'));
     
     showToast(`${translations[currentLang].toastLoaded} ${id}`, 'success');
+    resetToZero(); 
+    resetScore();
 };
 
 const swapTeams = () => {
