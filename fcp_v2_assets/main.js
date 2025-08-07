@@ -179,6 +179,8 @@ const updateTeamUI = (team, name, logoFile, color1, color2) => {
     setImage(obsLogoSource, logoFile);
     setSourceColor(obsColorSource1, useColor1);
     setSourceColor(obsColorSource2, useColor2);
+    resetToZero(); 
+    resetScore();
 };
 
 const applyMatch = () => {
@@ -624,6 +626,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupEventListeners();
     setLanguage(savedLang);
     resetToZero(); 
+    resetScore();
     updateInjuryTimeDisplay();
     obs.connect('ws://localhost:4455').catch(err => showToast(translations[currentLang].toastObsError, 'error'));
 });
