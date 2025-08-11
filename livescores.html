@@ -5,10 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Live Score Marquee</title>
   <style>
-    body {
+    /* เบื้องหลังทั้งหมด */
+    html, body {
+      height: 100%;
+      margin: 0;
+      background-color: #00ff00;
       font-family: 'Segoe UI', sans-serif;
+    }
+
+    body {
       margin: 2rem;
-      background: #f0f2f5;
+      background: #00ff00;
     }
 
     h1 {
@@ -16,36 +23,36 @@
       color: #333;
     }
 
-    /* ห่อทั้ง marquee และกล่องรูป เพื่อซ้อนทับ */
-    .marquee-wrapper {
-      position: relative;
-    }
-
-    
-    /* กล่องหลักของ marquee */
+    /* marquee container ปรับขนาดให้ใหญ่ขึ้นและใส่ transition */
     #score-marquee {
       position: relative;
       overflow: hidden;
       white-space: nowrap;
       background: linear-gradient(90deg, #0f2027, #203a43, #2c5364);
       color: #fff;
-      padding: 1.5rem;
+      padding: 3rem;
       border-radius: 8px;
       box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-      font-size: 1.2rem;
+      font-size: 2rem;
       font-weight: bold;
-      /* transition: opacity 0.8s ease, transform 0.8s ease; */
+      width: 100%;
+      box-sizing: border-box;
+      margin: 0 auto;
+
+      /* เปิด transition สำหรับแสดง/ซ่อน */
+      transition: opacity 0.8s ease, transform 0.8s ease;
       opacity: 1;
       transform: translateY(0);
     }
 
-    /* ตอนซ่อน marquee */
+    /* สถานะซ่อน */
     #score-marquee.hidden {
       opacity: 0;
-      transform: translateY(-20px);
+      transform: translateY(0);
       pointer-events: none;
     }
 
+    /* ตัวหนังสือเลื่อน */
     .scrolling-text {
       display: inline-block;
       padding-left: 100%;
@@ -69,89 +76,27 @@
       animation-play-state: paused;
     }
 
+    /* keyframes เลื่อนข้อความ */
     @keyframes scroll-left {
       0%   { transform: translateX(0); }
       100% { transform: translateX(-100%); }
     }
 
-    @keyframes fadeInMarquee {
-      from { opacity: 0; }
-      to   { opacity: 1; }
-    }
-
-    @keyframes fadeOutMarquee {
-      from { opacity: 1; }
-      to   { opacity: 0; }
-    }
-
+    /* โลโก้ทีม */
     .team-logo {
-      width: 24px;
-      height: 24px;
+      width: 100px;
+      height: 100px;
       vertical-align: middle;
-      margin: 0 0.3rem;
-    }
-
-    /* กล่องรูปซ้อนทับช่วงที่ซ่อน marquee */
-    #alt-rotator {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: #00ff00; /* Green screen */
-      border-radius: 8px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-      opacity: 1;
-      transform: translateY(0);
-      transition: opacity 0.8s ease, transform 0.8s ease;
-    }
-
-    /* ตอนซ่อนกล่องรูป */
-    #alt-rotator.hidden {
-      opacity: 0;
-      transform: translateY(20px);
-      pointer-events: none;
-    }
-
-    /* รูปด้านใน — จำกัดขนาด/เฟดตอนเปลี่ยน */
-    #alt-rotator img {
-      max-width: 120%;
-      max-height: 100%;
-      object-fit: contain;
-      border-radius: 6px;
-      background: #fff;
-      padding: 0.25rem 0.4rem;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.25);
-      transition: opacity 0.3s ease;
-    }
-
-    html, body {
-      height: 100%;
-      margin: 0;
-      background-color: #00ff00; /* Green screen */
-    }
-
-    /* เคารพผู้ใช้ที่ตั้งค่าลด motion */
-    @media (prefers-reduced-motion: reduce) {
-      .scrolling-text { animation-duration: 1ms; }
-      #score-marquee, #alt-rotator { transition: none; }
+      margin: 0 0.5rem;
     }
   </style>
 </head>
 <body>
-  <h.01>คะแนนวันนี้ (<span id="today-label"></span>)</h0.1 >
+  <h1>คะแนนวันนี้ (<span id="today-label"></span>)</h1>
 
-  <div class="marquee-wrapper">
-    <!-- Marquee คะแนน -->
-    <div id="score-marquee">
-      <div class="scrolling-text" id="scrolling-content">
-        กำลังโหลดข้อมูล...
-      </div>
-    </div>
-
-    <!-- กล่องรูปสลับตอนซ่อน -->
-    <div id="alt-rotator" class="hidden">
-      <img id="alt-image" src="" alt="ภาพสลับ" />
+  <div id="score-marquee">
+    <div class="scrolling-text" id="scrolling-content">
+      กำลังโหลดข้อมูล...
     </div>
   </div>
 
@@ -160,9 +105,7 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
 
   <script>
-    // =========================
-    // 1) Firebase Config
-    // =========================
+    // 1. Firebase Config ของคุณ
     const firebaseConfig = {
       apiKey: "AIzaSyBCC4P4EPj1W4Gu6ubI2xDozxpsCvJksOw",
       authDomain: "realtimescore-87528.firebaseapp.com",
@@ -176,9 +119,7 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // =========================
-    // 2) แม็ปโลโก้ทีม
-    // =========================
+    // 2. แม็ปเก็บโลโก้ทีม
     const teamLogos = {
       'พรหมานุสรณ์ FC':  'logos/พรหมานุสรณ์ FC.png',
       'พวกพี่เสือเก่า': 'logos/พวกพี่เสือเก่า.png',
@@ -192,32 +133,24 @@
       'แก๊งค์4พ่อบ้าน': 'logos/แก๊งค์4พ่อบ้าน.png',
       'ผู้ใหญ่น้อง x BBPCup': 'logos/ผู้ใหญ่น้อง x BBPCup.png',
       'Shut Up': 'logos/Shut Up.png'
-      
-      // เติมทีมอื่น ๆ ได้ตามต้องการ
     };
     const defaultLogo = 'logos/default.png';
 
-    // =========================
-    // 3) Utility: วันที่แบบ Local (แก้ปัญหา UTC)
-    // =========================
-    function getTodayStringLocal() {
-      const now = new Date();
-      // ชดเชย timezone เป็น local ISO "YYYY-MM-DD"
-      const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
-      return local.toISOString().slice(0, 10);
+    // 3. คืนค่าวันที่ "YYYY-MM-DD"
+    function getTodayString() {
+      return new Date().toISOString().slice(0,10);
     }
 
-    // แสดงวันที่
-    const today = getTodayStringLocal();
+    // 4. แสดงวันที่
+    const today = getTodayString();
     document.getElementById('today-label').innerText = today;
 
-    // =========================
-    // 4) Query แมตช์ของวันนี้
-    // =========================
+    // 5. Query แมตช์วันที่วันนี้
     const todayQuery = db.ref('matches')
                          .orderByChild('date')
                          .equalTo(today);
 
+    // 6. ฟัง event แล้วสร้าง HTML วิ่ง
     const marquee = document.getElementById('scrolling-content');
 
     todayQuery.on('value', snapshot => {
@@ -228,133 +161,57 @@
 
       const parts = [];
       snapshot.forEach(childSnap => {
-        const m = childSnap.val() || {};
-        const teamA = m.teamA || 'ทีม A';
-        const teamB = m.teamB || 'ทีม B';
-        const roundLabel = m.roundLabel || 'รอบไม่ระบุ';
-        const scoreA = (m.scoreA ?? '-');
-        const scoreB = (m.scoreB ?? '-');
-
-        const logoA = `<img src="${teamLogos[teamA] || defaultLogo}" class="team-logo" alt="${teamA}">`;
-        const logoB = `<img src="${teamLogos[teamB] || defaultLogo}" class="team-logo" alt="${teamB}">`;
-
-        const scoreHtml = `<span class="score-highlight">${scoreA} - ${scoreB}</span>`;
+        const m = childSnap.val();
+        const logoA = `<img src="${teamLogos[m.teamA]||defaultLogo}" class="team-logo" alt="${m.teamA}">`;
+        const logoB = `<img src="${teamLogos[m.teamB]||defaultLogo}" class="team-logo" alt="${m.teamB}">`;
+        const scoreHtml = `<span class="score-highlight">${m.scoreA} - ${m.scoreB}</span>`;
 
         const html = `
-          ${roundLabel} |
-          ${logoA}${teamA} ${scoreHtml} ${teamB}${logoB}
+          ${m.roundLabel} |
+          ${logoA}${m.teamA} ${scoreHtml} ${m.teamB}${logoB}
         `.trim();
 
         parts.push(html);
       });
 
-      // เว้นช่องไฟระหว่างแมตช์
-      marquee.innerHTML = parts.join('&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;');
+      marquee.innerHTML = parts.join('&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;');
     });
 
-  // =========================
-// 5) รูปแทน (แสดงภาพเดียวคงที่)
-// =========================
+// แทนที่บล็อก setInterval เดิมทั้งหมดด้วยโค้ดด้านล่าง
 
-// พาธภาพเดียว (โลโก้ทีม)
-const ALT_IMAGE_URL = 'images/logoteam.png';
+const marquees = document.getElementById('score-marquee');
 
-// Preload เพื่อลดการกระพริบ
-(() => {
-  const i = new Image();
-  i.src = ALT_IMAGE_URL;
-})();
+// ตั้งค่าเวลาให้เข้าใจง่าย
+const SHOW_MS = 40_000;           // 40 วินาที
+const HIDE_MS = 20 * 60 * 1000;   // 20 นาที
 
-const altBox = document.getElementById('alt-rotator');
-const altImg = document.getElementById('alt-image');
+let timerId = null;
 
-// แสดงภาพเดียวแบบคงที่
-function showAltImage() {
-  altImg.style.opacity = 0;
-  altImg.src = ALT_IMAGE_URL;
-  altImg.alt = 'โลโก้ทีม';
-
-  // ทำให้การเปลี่ยน opacity ลื่นขึ้น
-  requestAnimationFrame(() => {
-    altImg.style.opacity = 1;
-  });
-
-  altBox.classList.remove('hidden');
-  altBox.style.animation = 'fadeInMarquee 0.8s ease forwards';
-}
-
-// ซ่อนบล็อกรูป
-function hideAltImage() {
-  altBox.style.animation = 'fadeOutMarquee 0.5s ease forwards';
-  setTimeout(() => {
-    altBox.classList.add('hidden');
-  }, 500);
-}
-
-// ถ้ารูปมีปัญหา ให้กลับไปโชว์คะแนน
-altImg.addEventListener('error', () => {
-  hideAltImage();
-  // กลับไปเฟสคะแนน
-  showingScore = true;
-  showMarquee();
-  scheduleNext(SCORE_PHASE_MS);
-});
-
-// =========================
-// 6) Toggle โชว์/ซ่อน + ควบคุมเฟสเวลา
-// =========================
-const marqueeBox = document.getElementById('score-marquee');
-
+// ฟังก์ชันโชว์
 function showMarquee() {
-  marqueeBox.classList.remove('hidden');
-  marqueeBox.style.animation = 'fadeInMarquee 0.8s ease forwards';
+  marquees.classList.remove('hidden'); // โชว์
+  clearTimeout(timerId);
+  timerId = setTimeout(hideMarquee, SHOW_MS); // ผ่านไป 40 วินาที → ซ่อน
 }
 
+// ฟังก์ชันซ่อน
 function hideMarquee() {
-  marqueeBox.style.animation = 'fadeOutMarquee 0.8s ease forwards';
-  setTimeout(() => {
-    marqueeBox.classList.add('hidden');
-  }, 800);
+  marquees.classList.add('hidden'); // ซ่อน
+  clearTimeout(timerId);
+  timerId = setTimeout(showMarquee, HIDE_MS); // ผ่านไป 20 นาที → โชว์
 }
 
-// ตั้งค่าเวลาในแต่ละเฟส
-const SCORE_PHASE_MS = 38 * 1000; // ระยะเวลาโชว์คะแนน
-const IMAGE_PHASE_MS = 6 * 1000; // ระยะเวลาโชว์รูป
-let showingScore = true;
-let phaseTimer = null;
-
-function scheduleNext(ms) {
-  clearTimeout(phaseTimer);
-  phaseTimer = setTimeout(cycle, ms);
-}
-
-function cycle() {
-  // มีภาพโลโก้อยู่เสมอ จึงสลับระหว่าง "คะแนน ↔ รูปโลโก้"
-  if (showingScore) {
-    // ไปเฟสรูป
-    hideMarquee();
-    setTimeout(() => {
-      showAltImage();
-      showingScore = false;
-      scheduleNext(IMAGE_PHASE_MS);
-    }, 800); // รอ fadeOut marquee
-  } else {
-    // กลับมาเฟสคะแนน
-    hideAltImage();
-    showMarquee();
-    showingScore = true;
-    scheduleNext(SCORE_PHASE_MS);
-  }
-}
-
-// เริ่มต้นด้วยการโชว์คะแนน แล้วเข้าสู่ลูป
+// เริ่มรอบด้วยการโชว์ก่อน
 showMarquee();
-scheduleNext(SCORE_PHASE_MS);
 
-// กัน memory leak
-window.addEventListener('beforeunload', () => {
-  clearTimeout(phaseTimer);
-});
-  </script> 
+/*
+หมายเหตุ:
+- ถ้าต้องการเริ่มจาก "ซ่อนก่อน" ให้เรียก hideMarquee() แทน showMarquee()
+- ถ้ามี element อื่นที่อยากสลับด้วย (เช่น #image-container) ให้เพิ่ม:
+    document.getElementById('image-container').classList.toggle('hidden');
+  ในฟังก์ชัน showMarquee/hideMarquee ตามจังหวะที่ต้องการ
+*/
+
+  </script>
 </body>
 </html>
