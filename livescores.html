@@ -29,10 +29,10 @@
       white-space: nowrap;
       background: linear-gradient(90deg, #0f2027, #203a43, #2c5364);
       color: #fff;
-      padding: 2rem;
+      padding: 1.5rem;
       border-radius: 8px;
       box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-      font-size: 2rem;
+      font-size: 1.2rem;
       font-weight: bold;
       /* transition: opacity 0.8s ease, transform 0.8s ease; */
       opacity: 1;
@@ -115,8 +115,8 @@
 
     /* รูปด้านใน — จำกัดขนาด/เฟดตอนเปลี่ยน */
     #alt-rotator img {
-      max-width: 90%;
-      max-height: 70%;
+      max-width: 120%;
+      max-height: 100%;
       object-fit: contain;
       border-radius: 6px;
       background: #fff;
@@ -139,7 +139,7 @@
   </style>
 </head>
 <body>
-  <h1>คะแนนวันนี้ (<span id="today-label"></span>)</h1>
+  <h.01>คะแนนวันนี้ (<span id="today-label"></span>)</h0.1 >
 
   <div class="marquee-wrapper">
     <!-- Marquee คะแนน -->
@@ -183,15 +183,16 @@
       'พรหมานุสรณ์ FC':  'logos/พรหมานุสรณ์ FC.png',
       'พวกพี่เสือเก่า': 'logos/พวกพี่เสือเก่า.png',
       'สมหวัง x พงษ์เพชรบุรี': 'logos/สมหวัง x พงษ์เพชรบุรี.png',
-      'อินดี้ 90': 'logos/อินดี้ 90.png',
+      'ชมรม ฟุตบอลโพธิ์กรุ': 'logos/ชมรม ฟุตบอลโพธิ์กรุ.png',
       'กาลาติกอส 98':  'logos/กาลาติกอส 98.png',
       'ทนงทวยคงควรคอย x อย่าบิดนะ': 'logos/ทนงทวยคงควรคอย x อย่าบิดนะ.png',
       'กบฏกาลาติกอส 98': 'logos/กบฏกาลาติกอส 98.png',
       'รวมมามั่ว': 'logos/รวมมามั่ว.png',
-      'ซ้อนัทหมูพิเรน':  'logos/ซ้อนัทหมูพิเรน.png',
+      'ซ้อนัท หมูพิเรน':  'logos/ซ้อนัท หมูพิเรน.png',
       'แก๊งค์4พ่อบ้าน': 'logos/แก๊งค์4พ่อบ้าน.png',
-      'ผู้ใหญ่น้อง x BBP': 'logos/ผู้ใหญ่น้อง x BBP.png',
+      'ผู้ใหญ่น้อง x BBPCup': 'logos/ผู้ใหญ่น้อง x BBPCup.png',
       'Shut Up': 'logos/Shut Up.png'
+      
       // เติมทีมอื่น ๆ ได้ตามต้องการ
     };
     const defaultLogo = 'logos/default.png';
@@ -256,7 +257,7 @@
 // =========================
 
 // พาธภาพเดียว (โลโก้ทีม)
-const ALT_IMAGE_URL = 'images/logoteam.jpg';
+const ALT_IMAGE_URL = 'images/logoteam.png';
 
 // Preload เพื่อลดการกระพริบ
 (() => {
@@ -317,8 +318,8 @@ function hideMarquee() {
 }
 
 // ตั้งค่าเวลาในแต่ละเฟส
-const SCORE_PHASE_MS = 5000; // ระยะเวลาโชว์คะแนน
-const IMAGE_PHASE_MS = 5000; // ระยะเวลาโชว์รูป
+const SCORE_PHASE_MS = 38 * 1000; // ระยะเวลาโชว์คะแนน
+const IMAGE_PHASE_MS = 6 * 1000; // ระยะเวลาโชว์รูป
 let showingScore = true;
 let phaseTimer = null;
 
