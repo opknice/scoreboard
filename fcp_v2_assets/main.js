@@ -2,6 +2,27 @@
 
 // 1. นำเข้าข้อมูลภาษาจากไฟล์ languages.js
 import { translations } from './languages.js';
+// 1. นำเข้าโมดูล (สำหรับ Firebase v9+)
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+import { getDatabase, ref, push } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js";
+
+// 2. คอนฟิก Firebase
+const firebaseConfig = {
+  apiKey: "AIzaSyBCC4P4EPj1W4Gu6ubI2xDozxpsCvJksOw",
+  authDomain: "realtimescore-87528.firebaseapp.com",
+  databaseURL: "https://realtimescore-87528-default-rtdb.firebaseio.com",
+  projectId: "realtimescore-87528",
+  storageBucket: "realtimescore-87528.firebasestorage.app",
+  messagingSenderId: "354253424800",
+  appId: "1:354253424800:web:a3554b47705a579d8d61c5",
+  measurementId: "G-DZ43F4V999"
+};
+
+// 3. เริ่มต้นแอป และดึงอ็อบเจ็กต์ Database
+const app = initializeApp(firebaseConfig);
+const database = getDatabase(app);
+
+
 
 // --- DOM ELEMENTS ---
 const $ = id => document.getElementById(id);
@@ -11,14 +32,15 @@ const elements = [
     "colorA", "colorB", "colorA2", "colorB2",
     "countdownCheck", "languageSelector", "nameA-input", "nameB-input", "excelBtn", "loadBtn",
     "editBtnA", "okBtnA", "editBtnB", "okBtnB", "swapBtn", "scoreAPlusBtn", "scoreAMinusBtn",
-    "scoreBPlusBtn", "scoreBMinusBtn", "resetScoreBtn", "halfBtn", "playBtn", "pauseBtn",
+    "scoreBPlusBtn", "scoreBMinusBtn", "resetScoreBtn", "halfBtn", "play1Btn", "play2Btn", "pauseBtn",
     "resetToStartBtn", "editTimeBtn", "settingsBtn", "copyBtn", "helpBtn", "donateBtn",
     "toast-container", "popupOverlay", "detailsPopup", "helpPopup", "donatePopup", "detailsText",
     "saveDetailsBtn", "closeDetailsBtn", "closeHelpBtn", "closeDonateBtn", "injuryTimeDisplay",
     "injuryTimePlusBtn", "injuryTimeMinusBtn", "resetToZeroBtn", "timeSettingsPopup",
     "startTimeMinutes", "startTimeSeconds", "saveTimeSettingsBtn", "saveAndUpdateTimeBtn", "closeTimeSettingsBtn",
     "timeSettingsError", "changelogBtn", "changelogPopup", "closeChangelogBtn",
-    "logoPathBtn", "logoPathPopup", "currentLogoPath", "logoPathInput", "editLogoPathBtn", "closeLogoPathBtn"
+    "logoPathBtn", "logoPathPopup", "currentLogoPath", "logoPathInput", "editLogoPathBtn", "closeLogoPathBtn",
+    "halfpauseBtn", "fullEndBtn", "MatchSave"
 ].reduce((acc, id) => {
     acc[id.replace(/-(\w)/g, (m, p1) => p1.toUpperCase())] = $(id);
     return acc;
@@ -218,6 +240,10 @@ const applyMatch = () => {
     showToast(`${translations[currentLang].toastLoaded} ${id}`, 'success');
     resetToZero(); 
     resetScore();
+    half = '1st';
+    elements.halfText.textContent = half;
+    setText('half_text', half);
+
 };
 
 const swapTeams = () => {
@@ -273,7 +299,11 @@ const updateTimerDisplay = () => {
     setText('time_counter', timeString);
 };
 
-const startTimer = () => {
+const startTimer1 = () => {
+    half = '1st';
+    elements.halfText.textContent = half;
+    setText('half_text', half);
+    timer = 0;
     if (interval) return;
     interval = setInterval(() => {
         if (isCountdown) {
@@ -286,7 +316,46 @@ const startTimer = () => {
     }, 1000);
 };
 
-const stopTimer = () => { clearInterval(interval); interval = null; };
+const startTimer2 = () => {
+    half = '2nd';
+    elements.halfText.textContent = half;
+    setText('half_text', half);
+    timer = 900;
+    if (interval) return;
+    interval = setInterval(() => {
+        if (isCountdown) {
+            if (timer > 0) timer--;
+            else stopTimer();
+        } else {
+            timer++;
+        }
+        updateTimerDisplay();
+    }, 1000);
+};
+
+const stopTimer = () => { 
+    clearInterval(interval);
+    interval = null;
+};
+
+const halfpause = () => {
+    const timeString = "HT";
+    elements.timerText.textContent = timeString;
+    setText('time_counter', timeString);
+    elements.halfText.textContent = timeString;
+    setText('half_text', timeString);
+    stopTimer();
+};
+
+const fulltime = () => {
+    const timeString = "FT";
+    elements.timerText.textContent = timeString;
+    setText('time_counter', timeString);
+    elements.halfText.textContent = timeString;
+    setText('half_text', timeString);
+    stopTimer();
+};
+
 
 const resetToStartTime = () => {
     stopTimer();
@@ -303,6 +372,25 @@ const resetToZero = () => {
     updateTimerDisplay();
     updateInjuryTimeDisplay();
 }
+
+const saveinfo = () => {
+  const now = Date.now();
+  const matchInfo = {
+    teamA: nameA.innerText,
+    teamB: nameB.innerText,
+    scoreA: parseInt(scoreA, 10),
+    scoreB: parseInt(scoreB, 10),
+    roundLabel: label2.innerText,
+    timestamp: now,
+    // ถ้าต้องการเก็บวันที่เป็น string
+    date: new Date(now).toISOString().slice(0, 10) // format "YYYY-MM-DD"
+  };
+
+  push(ref(database, 'matches'), matchInfo)
+    .then(() => alert('บันทึกคะแนนเรียบร้อยแล้ว'))
+    .catch(err => alert('บันทึกไม่สำเร็จ: ' + err.message));
+};
+
 
 const openTimeSettings = () => {
     const minutes = Math.floor(countdownStartTime / 60);
@@ -496,10 +584,14 @@ const setupEventListeners = () => {
     elements.scoreBMinusBtn.addEventListener('click', () => changeScore('B', -1));
     elements.resetScoreBtn.addEventListener('click', resetScore);
     elements.halfBtn.addEventListener('click', toggleHalf);
-    elements.playBtn.addEventListener('click', startTimer);
-    elements.pauseBtn.addEventListener('click', stopTimer);
+    elements.play1Btn.addEventListener('click', startTimer1);
+    elements.play2Btn.addEventListener('click', startTimer2);
+    elements.halfpauseBtn.addEventListener('click', halfpause);
+    elements.fullEndBtn.addEventListener('click', fulltime);
+    elements.MatchSave.addEventListener('click', saveinfo);
+    // elements.pauseBtn.addEventListener('click', stopTimer);
     elements.resetToStartBtn.addEventListener('click', resetToStartTime); 
-    elements.resetToZeroBtn.addEventListener('click', resetToZero);     
+    // elements.resetToZeroBtn.addEventListener('click', resetToZero);     
     elements.editTimeBtn.addEventListener('click', openTimeSettings);
     elements.countdownCheck.addEventListener('change', () => { isCountdown = elements.countdownCheck.checked; });
     elements.settingsBtn.addEventListener('click', () => { elements.detailsText.value = localStorage.getItem('detailsText') || ''; openPopup(elements.detailsPopup); });
@@ -508,7 +600,7 @@ const setupEventListeners = () => {
     elements.donateBtn.addEventListener('click', () => openPopup(elements.donatePopup));
     elements.changelogBtn.addEventListener('click', () => openPopup(elements.changelogPopup));
     elements.popupOverlay.addEventListener('click', closeAllPopups);
-    
+
     // Details Popup
     elements.saveDetailsBtn.addEventListener('click', () => { localStorage.setItem('detailsText', elements.detailsText.value); closeAllPopups(); showToast(translations[currentLang].toastSaved, 'success'); });
     elements.closeDetailsBtn.addEventListener('click', closeAllPopups);
@@ -658,3 +750,8 @@ document.querySelectorAll('.quick-color_B').forEach(el => {
         document.getElementById('colorA').dispatchEvent(new Event('input', { bubbles: true }));
     });
 });
+
+
+
+// function realtime scoreboard update --------------------------------------------------
+

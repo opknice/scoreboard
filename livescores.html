@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Live Score Marquee</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      margin: 2rem;
+      background: #f0f2f5;
+    }
+
+    h1 {
+      margin-bottom: 1rem;
+      color: #333;
+    }
+
+    
+    #score-marquee {
+      position: relative;
+      overflow: hidden;
+      white-space: nowrap;
+      background: linear-gradient(90deg, #0f2027, #203a43, #2c5364);
+      color: #fff;
+      padding: 1rem;
+      border-radius: 8px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+      font-size: 1.1rem;
+      font-weight: bold;
+
+      opacity: 1;
+      transform: translateY(0);
+     transition: opacity 0.8s ease, transform 0.8s ease;
+      
+    }
+
+    /* ตอนซ่อน */
+    #score-marquee.hidden {
+      opacity: 0;
+      transform: translateY(-10px);
+      pointer-events: none; /* กันคลิกระหว่างซ่อน */
+    }
+
+    .scrolling-text {
+      display: inline-block;
+      padding-left: 100%;
+      animation: scroll-left 40s linear infinite;
+    }
+/* เอาไว้ห่อเฉพาะตัวเลขคะแนน */
+    .score-highlight {
+        background: #fff;                       /* พื้นหลังขาว */
+        color: #000;                            /* ตัวหนังสือดำ */
+        padding: 0.2rem 0.4rem;                 /* ช่องว่างรอบตัวเลข */
+        border-radius: 0.2rem;                  /* มุมโค้งเล็กน้อย */
+        box-shadow: 0 1px 2px rgba(0,0,0,0.1);   /* เงาอ่อนๆ */
+        display: inline-block;                  /* ให้ padding/box-shadow ใช้ได้ */
+        margin: 0 0.3rem;                       /* เว้นข้างซ้ายขวาให้อ่านง่าย */
+        white-space: nowrap;                    /* อย่าให้ตัดบรรทัด */
+    }
+
+
+    #score-marquee:hover .scrolling-text {
+      animation-play-state: paused;
+    }
+
+    @keyframes scroll-left {
+      0%   { transform: translateX(0); }
+      100% { transform: translateX(-100%); }
+    }
+
+    .team-logo {
+      width: 24px;
+      height: 24px;
+      vertical-align: middle;
+      margin: 0 0.3rem;
+    }
+
+    html, body {
+  height: 100%;
+  margin: 0;
+  background-color: #00ff00;  /* หรือใช้คำว่า “green” ก็ได้ */
+}
+  </style>
+  
+</head>
+<body>
+  
+  <h1>คะแนนวันนี้ (<span id="today-label"></span>)</h1>
+  <div id="score-marquee">
+    <div class="scrolling-text" id="scrolling-content">
+      กำลังโหลดข้อมูล...
+    </div>
+  </div>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+
+  <script>
+    // 1. Firebase Config ของคุณ
+    const firebaseConfig = {
+      apiKey: "AIzaSyBCC4P4EPj1W4Gu6ubI2xDozxpsCvJksOw",
+      authDomain: "realtimescore-87528.firebaseapp.com",
+      databaseURL: "https://realtimescore-87528-default-rtdb.firebaseio.com",
+      projectId: "realtimescore-87528",
+      storageBucket: "realtimescore-87528.appspot.com",
+      messagingSenderId: "354253424800",
+      appId: "1:354253424800:web:a3554b47705a579d8d61c5",
+      measurementId: "G-DZ43F4V999"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    // 2. แม็ปเก็บโลโก้ทีม
+    const teamLogos = {
+      'พรหมานุสรณ์ FC':  'logos/พรหมานุสรณ์ FC.png',
+      'พวกพี่เสือเก่า': 'logos/พวกพี่เสือเก่า.png',
+      'สมหวัง x พงษ์เพชรบุรี': 'logos/สมหวัง x พงษ์เพชรบุรี.png',
+      'อินดี้ 90': 'logos/อินดี้ 90.png',
+      'กาลาติกอส 98':  'logos/กาลาติกอส 98.png',
+      'ทนงทวยคงควรคอย x อย่าบิดนะ': 'logos/ทนงทวยคงควรคอย x อย่าบิดนะ.png',
+      'กบฏกาลาติกอส 98': 'logos/กบฏกาลาติกอส 98.png',
+      'รวมมามั่ว': 'logos/รวมมามั่ว.png',      
+      'ซ้อนัทหมูพิเรน':  'logos/ซ้อนัทหมูพิเรน.png',
+      'แก๊งค์4พ่อบ้าน': 'logos/แก๊งค์4พ่อบ้าน.png',
+      'ผู้ใหญ่น้อง x BBP': 'logos/ผู้ใหญ่น้อง x BBP.png',
+      'Shut Up': 'logos/Shut Up.png',      
+      // เติมทีมอื่นๆ ตรงนี้ได้เรื่อยๆ
+    };
+    const defaultLogo = 'logos/default.png';
+
+    // 3. คืนค่าวันที่ "YYYY-MM-DD"
+    function getTodayString() {
+      return new Date().toISOString().slice(0,10);
+    }
+
+    // 4. แสดงวันที่
+    const today = getTodayString();
+    document.getElementById('today-label').innerText = today;
+
+    // 5. Query แมตช์วันที่วันนี้
+    const todayQuery = db.ref('matches')
+                         .orderByChild('date')
+                         .equalTo(today);
+
+    // 6. ฟัง event แล้วสร้าง HTML วิ่ง
+    const marquee = document.getElementById('scrolling-content');
+
+todayQuery.on('value', snapshot => {
+  if (!snapshot.exists()) {
+    marquee.innerHTML = 'ยังไม่มีคะแนนวันนี้';
+    return;
+  }
+
+  const parts = [];
+  snapshot.forEach(childSnap => {
+    const m = childSnap.val();
+
+    // โลโก้ A/B เหมือนเดิม
+    const logoA = `<img src="${teamLogos[m.teamA]||defaultLogo}" class="team-logo" alt="${m.teamA}">`;
+    const logoB = `<img src="${teamLogos[m.teamB]||defaultLogo}" class="team-logo" alt="${m.teamB}">`;
+
+    // ห่อเฉพาะตัวเลขด้วย .score-highlight
+    const scoreHtml = `<span class="score-highlight">
+                         ${m.scoreA} - ${m.scoreB}
+                       </span>`;
+
+    // สร้างบรรทัด: รอบ | โลโก้A ชื่อA [highlight score] ชื่อB โลโก้B
+    const html = `
+      ${m.roundLabel} |
+      ${logoA}${m.teamA} ${scoreHtml} ${m.teamB}${logoB}
+    `.trim();
+
+    parts.push(html);
+  });
+
+  // เชื่อมแต่ละแมตช์ด้วยลูกจุด
+    marquee.innerHTML = parts.join('&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;');
+});
+  </script>
+
+
+</body>
+</html>

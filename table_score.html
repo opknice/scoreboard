@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=1024">
+  <title>ตารางคะแนนฟุตบอล + ข้อความล่าสุด (แสดงเฉพาะวันที่)</title>
+  
+  <style>
+    :root {
+      --row-color-odd:   71,110,236;
+      --row-color-even: 169,192,255;
+      --row-alpha:       0.10;
+    }
+
+    body {
+      margin:0;
+      padding:20px;
+      background:
+        url('images/logo.png') no-repeat center 20px,
+        url('images/bg.png')   no-repeat center center fixed;
+      background-size:250px auto,cover;
+      font-family:"Segoe UI",sans-serif;
+      color:#fff;
+      opacity:0;
+      transition:opacity .8s ease-in-out;
+    }
+    body.loaded { opacity:1; }
+
+    h1 {
+      margin:40px 0 20px;
+      text-align:center;
+      text-shadow:0 1px 2px rgba(0,0,0,.6);
+      font-size:2rem;
+    }
+
+    table {
+      width:80%;
+      margin:0 auto;
+      border-collapse:collapse;
+      background:transparent;
+      backdrop-filter:blur(4px);
+    }
+    th, td {
+      padding:10px;
+      border:none;
+      text-align:center;
+      vertical-align:middle;
+    }
+    thead th {
+      padding:6px 8px;
+      background:transparent;
+      color:#fff;
+      font-size:1rem;
+    }
+
+    td.team-cell {
+      display:flex;
+      align-items:center;
+      gap:8px;
+      padding-left:0;
+      text-align:left;
+    }
+    img.logo {
+      max-width:32px;
+      width:100%;
+      height:auto;
+      object-fit:contain;
+    }
+
+    /* ตรงกับ tbody ที่มี id="tableBody" */
+    #tableBody tr:nth-child(odd)  { background:rgba(var(--row-color-odd),  var(--row-alpha)); }
+    #tableBody tr:nth-child(even) { background:rgba(var(--row-color-even),var(--row-alpha)); }
+
+    @keyframes slideInUp {
+      from { opacity:0; transform:translateY(20px); }
+      to   { opacity:1; transform:none; }
+    }
+    #tableBody tr {
+      opacity:0;
+      transform:translateY(20px);
+      --delay:0s;
+      animation:slideInUp .5s ease-out forwards;
+      animation-delay:var(--delay);
+    }
+
+    .no-data td {
+      color:#fff;
+      font-size:1.1rem;
+      text-shadow:0 1px 2px rgba(0,0,0,.6);
+      text-align:center;
+    }
+
+  </style>
+</head>
+<body>
+  <h1><br></h1>
+
+    <!-- ข้อความล่าสุด -->
+  <div id="latestMessageContainer" style="text-align:center; margin-bottom:20px;">
+    <h2>VAR Champions League SS1</h2>
+  </div>
+
+  
+  <table id="leagueTable">
+    <thead>
+    <tr>
+      <th>อันดับ</th>
+      <th>ทีม</th>
+      <th>แข่ง</th>       <!-- เพิ่มคอลัมน์นี้ -->
+      <th>ชนะ</th>
+      <th>เสมอ</th>
+      <th>แพ้</th>
+      <th>ได้</th>
+      <th>เสีย</th>
+      <th>ได้-เสีย</th>
+      <th>คะแนน</th>
+    </tr>
+    </thead>
+    <tbody id="tableBody"></tbody>
+  </table>
+
+
+  <!-- ใช้ ES Modules ของ Firebase v9 -->
+  <script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+  import {
+    getDatabase,
+    ref,
+    onValue
+  } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js";
+
+  window.addEventListener('DOMContentLoaded', () => {
+    document.body.classList.add('loaded');
+  });
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBCC4P4EPj1W4Gu6ubI2xDozxpsCvJksOw",
+    authDomain: "realtimescore-87528.firebaseapp.com",
+    databaseURL: "https://realtimescore-87528-default-rtdb.firebaseio.com",
+    projectId: "realtimescore-87528",
+    storageBucket: "realtimescore-87528.firebasestorage.app",
+    messagingSenderId: "354253424800",
+    appId: "1:354253424800:web:a3554b47705a579d8d61c5",
+    measurementId: "G-DZ43F4V999"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+
+  const PATH_MATCHES = 'matches';
+  const matchesRef = ref(db, PATH_MATCHES);
+
+  // แผนที่โลโก้แต่ละทีม
+  const teamLogos = {
+    'พรหมานุสรณ์ FC':  'logos/พรหมานุสรณ์ FC.png',
+    'พวกพี่เสือเก่า':   'logos/พวกพี่เสือเก่า.png',
+    'สมหวัง x พงษ์เพชรบุรี': 'logos/สมหวัง x พงษ์เพชรบุรี.png',
+    'อินดี้ 90':         'logos/อินดี้ 90.png',
+    'กาลาติกอส 98':      'logos/กาลาติกอส 98.png',
+    'ทนงทวยคงควรคอย x อย่าบิดนะ': 'logos/ทนงทวยคงควรคอย x อย่าบิดนะ.png',
+    'กบฏกาลาติกอส 98':   'logos/กบฏกาลาติกอส 98.png',
+    'รวมมามั่ว':          'logos/รวมมามั่ว.png',
+    'ซ้อนัทหมูพิเรน':     'logos/ซ้อนัทหมูพิเรน.png',
+    'แก๊งค์4พ่อบ้าน':     'logos/แก๊งค์4พ่อบ้าน.png',
+    'ผู้ใหญ่น้อง x BBP':  'logos/ผู้ใหญ่น้อง x BBP.png',
+    'Shut Up':            'logos/Shut Up.png'
+    // เติมทีมอื่นๆ เพิ่มได้ตามต้องการ
+  };
+
+  const initTeam = () => ({ P:0, W:0, D:0, L:0, GF:0, GA:0, GD:0, Pts:0 });
+  const renderNoData = () => {
+    const tbody = document.getElementById('tableBody');
+    tbody.innerHTML = `
+      <tr class="no-data">
+        <td colspan="10">ยังไม่มีข้อมูลการแข่งขัน</td>
+      </tr>
+    `;
+  };
+
+  onValue(matchesRef, snapshot => {
+    const stats = {};
+    if (!snapshot.exists()) {
+      renderNoData();
+      return;
+    }
+
+    snapshot.forEach(child => {
+      const m = child.val() || {};
+      let { teamA, teamB, scoreA, scoreB } = m;
+      if (!teamA || !teamB) return;
+      teamA = teamA.trim();
+      teamB = teamB.trim();
+
+      if (!stats[teamA]) stats[teamA] = initTeam();
+      if (!stats[teamB]) stats[teamB] = initTeam();
+
+      const a = Number(scoreA);
+      const b = Number(scoreB);
+      if (!Number.isFinite(a) || !Number.isFinite(b)) return;
+
+      stats[teamA].P++;
+      stats[teamB].P++;
+      stats[teamA].GF += a;
+      stats[teamA].GA += b;
+      stats[teamB].GF += b;
+      stats[teamB].GA += a;
+
+      if (a > b) {
+        stats[teamA].W++;
+        stats[teamA].Pts += 3;
+        stats[teamB].L++;
+      } else if (a < b) {
+        stats[teamB].W++;
+        stats[teamB].Pts += 3;
+        stats[teamA].L++;
+      } else {
+        stats[teamA].D++;
+        stats[teamB].D++;
+        stats[teamA].Pts++;
+        stats[teamB].Pts++;
+      }
+    });
+
+    const tableData = Object.keys(stats).map(team => {
+      const s = stats[team];
+      s.GD = s.GF - s.GA;
+      return { team, ...s };
+    });
+
+    const tbody = document.getElementById('tableBody');
+    tbody.innerHTML = '';
+    if (tableData.length === 0) {
+      renderNoData();
+      return;
+    }
+
+    tableData.sort((a, b) => {
+      if (b.Pts !== a.Pts) return b.Pts - a.Pts;
+      if (b.GD  !== a.GD ) return b.GD  - a.GD;
+      if (b.GF  !== a.GF ) return b.GF  - a.GF;
+      return a.team.localeCompare(b.team);
+    });
+
+    tableData.forEach((row, i) => {
+      const tr = document.createElement('tr');
+      tr.style.setProperty('--delay', `${i * 0.05}s`);
+
+      // หาตำแหน่งโลโก้ ถ้าไม่มีใช้ default
+      const logoSrc = teamLogos[row.team] || 'images/logo.png';
+
+      tr.innerHTML = `
+        <td>${i + 1}</td>
+        <td class="team-cell">
+          <img class="logo" src="${logoSrc}" alt="${row.team} logo">
+          ${row.team}
+        </td>
+        <td>${row.P}</td>
+        <td>${row.W}</td>
+        <td>${row.D}</td>
+        <td>${row.L}</td>
+        <td>${row.GF}</td>
+        <td>${row.GA}</td>
+        <td>${row.GD}</td>
+        <td>${row.Pts}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  });
+</script>
+
+
+</body>
+</html>
